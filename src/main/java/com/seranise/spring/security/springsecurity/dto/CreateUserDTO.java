@@ -9,6 +9,8 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import java.util.List;
+
 @Getter
 @Setter
 @AllArgsConstructor
@@ -21,8 +23,8 @@ public class CreateUserDTO {
     @Email(message = "Email is invalid")
     private String email;
 
-    @NotNull(message = "Role is mandatory")
-    private Role role;
+    @NotNull(message = "Roles are mandatory")
+    private List<Role> roles;
 
     @NotBlank(message = "Password is mandatory")
     private String password;

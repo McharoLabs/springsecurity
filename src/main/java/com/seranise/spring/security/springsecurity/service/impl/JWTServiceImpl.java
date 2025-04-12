@@ -1,6 +1,7 @@
 package com.seranise.spring.security.springsecurity.service.impl;
 
 import com.seranise.spring.security.springsecurity.entity.User;
+import com.seranise.spring.security.springsecurity.exception.InvalidTokenException;
 import com.seranise.spring.security.springsecurity.service.JWTService;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
@@ -39,7 +40,11 @@ public class JWTServiceImpl implements JWTService {
     @Override
     public boolean isTokeValid(String token, UserDetails userDetails) {
         final String username = extractUsername(token);
-        return (username.equals(userDetails.getUsername()) && !isTokenExpired(token));
+        if (username.equals(userDetails.getUsername()) && !isTokenExpired(token)) {
+            return true;
+        } else {
+            throw new InvalidTokenException("The token is either invalid or expired");
+        }
     }
 
     @Override

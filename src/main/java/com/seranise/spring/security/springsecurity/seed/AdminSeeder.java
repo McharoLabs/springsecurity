@@ -8,6 +8,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
+import java.util.List;
 import java.util.Optional;
 
 @Configuration
@@ -23,14 +24,14 @@ public class AdminSeeder {
     @Bean
     public CommandLineRunner seedAdminUser() {
         return args -> {
-            Optional<User> adminExists = userRepository.findByRole(Role.ADMIN);
+            Optional<User> adminExists = userRepository.findByRoles(Role.ADMIN);
 
             if (adminExists.isEmpty()) {
                 User admin = new User();
 
                 admin.setName("Godfrey Mcharo");
                 admin.setEmail("mcharoprofg23@gmail.com");
-                admin.setRole(Role.ADMIN);
+                admin.setRoles(List.of(Role.ADMIN, Role.ORGANIZER));
                 admin.setPassword(passwordEncoder.encode("admin"));
 
                 userRepository.save(admin);

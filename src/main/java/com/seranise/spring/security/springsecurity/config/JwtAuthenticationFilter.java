@@ -1,5 +1,8 @@
 package com.seranise.spring.security.springsecurity.config;
 
+import com.seranise.spring.security.springsecurity.exception.ForbiddenAccessException;
+import com.seranise.spring.security.springsecurity.exception.InvalidTokenException;
+import com.seranise.spring.security.springsecurity.exception.UnauthorizedAccessException;
 import com.seranise.spring.security.springsecurity.service.impl.JWTServiceImpl;
 import com.seranise.spring.security.springsecurity.service.impl.UserServiceImpl;
 import jakarta.servlet.FilterChain;
@@ -30,40 +33,54 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     @Override
     protected void doFilterInternal(
-            @NonNull  HttpServletRequest request,
-            @NonNull  HttpServletResponse response,
-            @NonNull  FilterChain filterChain)
+            @NonNull HttpServletRequest request,
+            @NonNull HttpServletResponse response,
+            @NonNull FilterChain filterChain)
             throws ServletException, IOException {
+
         final String authHeader = request.getHeader("Authorization");
         final String jwt;
         final String userEmail;
 
-        if (StringUtils.isEmpty(authHeader) || !StringUtils.startsWith(authHeader, "Bearer ")) {
-            filterChain.doFilter(request, response);
-            return;
+        // If the Authorization header is missing, return 401 Unauthorized
+        if (StringUtils.isEmpty(authHeader)) {
+            throw new UnauthorizedAccessException("Authorization header is missing. Please provide a valid token.");
         }
 
+        // If the Authorization header doesn't start with "Bearer ", return 403 Forbidden
+        if (!StringUtils.startsWith(authHeader, "Bearer ")) {
+            throw new ForbiddenAccessException("Invalid Authorization header format. Expected 'Bearer <token>'.");
+        }
+
+        // Extract the token from the header
         jwt = authHeader.substring(7);
         userEmail = jwtService.extractUsername(jwt);
 
-        if (StringUtils.isNoneEmpty(userEmail) && SecurityContextHolder.getContext().getAuthentication() == null) {
+        // If a valid user email exists and the security context is empty, try to authenticate the user
+        if (StringUtils.isNotEmpty(userEmail) && SecurityContextHolder.getContext().getAuthentication() == null) {
             UserDetails userDetails = userService.userDetailService().loadUserByUsername(userEmail);
 
-            if (jwtService.isTokeValid(jwt, userDetails)) {
-                SecurityContext securityContext = SecurityContextHolder.createEmptyContext();
+            try {
+                // Check if the token is valid
+                if (jwtService.isTokeValid(jwt, userDetails)) {
+                    SecurityContext securityContext = SecurityContextHolder.createEmptyContext();
 
-                UsernamePasswordAuthenticationToken token = new UsernamePasswordAuthenticationToken(
-                        userDetails, null, userDetails.getAuthorities()
-                );
+                    UsernamePasswordAuthenticationToken token = new UsernamePasswordAuthenticationToken(
+                            userDetails, null, userDetails.getAuthorities()
+                    );
 
-                token.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
-                securityContext.setAuthentication(token);
+                    token.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+                    securityContext.setAuthentication(token);
 
-                SecurityContextHolder.setContext(securityContext);
+                    SecurityContextHolder.setContext(securityContext);
+                }
+            } catch (InvalidTokenException e) {
+                throw new ForbiddenAccessException("Invalid or expired token.");
             }
         }
 
+        // Continue the filter chain
         filterChain.doFilter(request, response);
-
     }
+
 }

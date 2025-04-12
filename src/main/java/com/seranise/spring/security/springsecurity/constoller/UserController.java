@@ -15,6 +15,7 @@ import java.util.Map;
 @PreAuthorize("hasAuthority('ROLE_USER')")
 public class UserController {
     @GetMapping
+    @PreAuthorize("hasAuthority('ROLE_USER')")
     public ResponseEntity<Map<String, Object>> sayHello() {
         Map<String, Object> response = new HashMap<>();
 

@@ -7,6 +7,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import java.util.List;
 import java.util.UUID;
 
 @Getter
@@ -18,5 +19,5 @@ public class UserResponseDTO {
 
     private String name;
     private String email;
-    private Role role;
+    private List<Role> role;
 }

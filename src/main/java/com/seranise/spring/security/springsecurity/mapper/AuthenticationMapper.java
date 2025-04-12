@@ -10,7 +10,7 @@ public class AuthenticationMapper {
         user.setName(createUserDTO.getName());
         user.setEmail(createUserDTO.getEmail());
         user.setPassword(createUserDTO.getPassword());
-        user.setRole(createUserDTO.getRole());
+        user.setRoles(createUserDTO.getRoles());
 
 
         return user;
