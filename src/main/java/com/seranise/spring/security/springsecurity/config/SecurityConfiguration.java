@@ -1,10 +1,9 @@
 package com.seranise.spring.security.springsecurity.config;
 
-import com.seranise.spring.security.springsecurity.enums.Role;
 import com.seranise.spring.security.springsecurity.service.impl.UserServiceImpl;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
@@ -17,7 +16,6 @@ import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
-import org.springframework.security.web.access.AccessDeniedHandlerImpl;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
 @Configuration
@@ -27,38 +25,19 @@ public class SecurityConfiguration {
     private final UserServiceImpl userService;
     private final JwtAuthenticationFilter authenticationFilter;
 
+    @Value("${auth.endpoint}")
+    private String authEndpoint;
+
     public SecurityConfiguration(UserServiceImpl userService, JwtAuthenticationFilter authenticationFilter) {
         this.userService = userService;
         this.authenticationFilter = authenticationFilter;
     }
 
-    /*
-    @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity httpSecurity) throws Exception {
-        httpSecurity.csrf(AbstractHttpConfigurer::disable)
-                .authorizeHttpRequests(request -> request.requestMatchers("/api/v1/auth/**")
-                        .permitAll()
-                        .requestMatchers("/api/v1/admin")
-                        .hasAnyAuthority(Role.ADMIN.name())
-                        .requestMatchers("/api/v1/user")
-                        .hasAnyAuthority(Role.USER.name())
-                        .anyRequest().authenticated())
-                .sessionManagement(manager -> manager.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                .authenticationProvider(authenticationProvider())
-                .addFilterBefore(
-                        authenticationFilter, UsernamePasswordAuthenticationFilter.class
-                );
-
-        return httpSecurity.build();
-    }
-
-     */
-
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity httpSecurity) throws Exception {
         httpSecurity.csrf(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests(request -> request
-                        .requestMatchers("/api/v1/auth/**").permitAll()
+                        .requestMatchers(authEndpoint + "/**").permitAll()
                         .anyRequest().authenticated()
                 )
                 .sessionManagement(sessionManagement -> sessionManagement

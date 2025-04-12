@@ -11,13 +11,14 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.NonNull;
 import org.apache.commons.lang3.StringUtils;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
+import org.springframework.web.servlet.HandlerExceptionResolver;
 
 import java.io.IOException;
 
@@ -25,62 +26,60 @@ import java.io.IOException;
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
     private final JWTServiceImpl jwtService;
     private final UserServiceImpl userService;
+    private final HandlerExceptionResolver handlerExceptionResolver;
 
-    public JwtAuthenticationFilter(JWTServiceImpl jwtService, UserServiceImpl userService) {
+    @Value("${auth.endpoint}")
+    private String authEndpoint;
+
+
+    public JwtAuthenticationFilter(JWTServiceImpl jwtService, UserServiceImpl userService, HandlerExceptionResolver handlerExceptionResolver) {
         this.jwtService = jwtService;
         this.userService = userService;
+        this.handlerExceptionResolver = handlerExceptionResolver;
     }
 
     @Override
     protected void doFilterInternal(
             @NonNull HttpServletRequest request,
             @NonNull HttpServletResponse response,
-            @NonNull FilterChain filterChain)
-            throws ServletException, IOException {
+            @NonNull FilterChain filterChain
+    ) throws ServletException, IOException {
+        try {
+            final String authHeader = request.getHeader("Authorization");
 
-        final String authHeader = request.getHeader("Authorization");
-        final String jwt;
-        final String userEmail;
+            if (request.getServletPath().startsWith(authEndpoint)) {
+                filterChain.doFilter(request, response);
+                return;
+            }
 
-        // If the Authorization header is missing, return 401 Unauthorized
-        if (StringUtils.isEmpty(authHeader)) {
-            throw new UnauthorizedAccessException("Authorization header is missing. Please provide a valid token.");
-        }
+            if (StringUtils.isEmpty(authHeader)) {
+                throw new UnauthorizedAccessException("Authorization header is missing. Please provide a valid token.");
+            }
 
-        // If the Authorization header doesn't start with "Bearer ", return 403 Forbidden
-        if (!StringUtils.startsWith(authHeader, "Bearer ")) {
-            throw new ForbiddenAccessException("Invalid Authorization header format. Expected 'Bearer <token>'.");
-        }
+            if (!authHeader.startsWith("Bearer ")) {
+                throw new ForbiddenAccessException("Invalid Authorization header format. Expected 'Bearer <token>'.");
+            }
 
-        // Extract the token from the header
-        jwt = authHeader.substring(7);
-        userEmail = jwtService.extractUsername(jwt);
+            final String jwt = authHeader.substring(7);
+            final String userEmail = jwtService.extractUsername(jwt);
 
-        // If a valid user email exists and the security context is empty, try to authenticate the user
-        if (StringUtils.isNotEmpty(userEmail) && SecurityContextHolder.getContext().getAuthentication() == null) {
-            UserDetails userDetails = userService.userDetailService().loadUserByUsername(userEmail);
+            if (StringUtils.isNotEmpty(userEmail) && SecurityContextHolder.getContext().getAuthentication() == null) {
+                UserDetails userDetails = userService.userDetailService().loadUserByUsername(userEmail);
 
-            try {
-                // Check if the token is valid
                 if (jwtService.isTokeValid(jwt, userDetails)) {
-                    SecurityContext securityContext = SecurityContextHolder.createEmptyContext();
-
                     UsernamePasswordAuthenticationToken token = new UsernamePasswordAuthenticationToken(
-                            userDetails, null, userDetails.getAuthorities()
-                    );
+                            userDetails, null, userDetails.getAuthorities());
 
                     token.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
-                    securityContext.setAuthentication(token);
-
-                    SecurityContextHolder.setContext(securityContext);
+                    SecurityContextHolder.getContext().setAuthentication(token);
                 }
-            } catch (InvalidTokenException e) {
-                throw new ForbiddenAccessException("Invalid or expired token.");
             }
-        }
 
-        // Continue the filter chain
-        filterChain.doFilter(request, response);
+            filterChain.doFilter(request, response);
+
+        } catch (Exception ex) {
+            handlerExceptionResolver.resolveException(request, response, null, ex);
+        }
     }
 
 }
