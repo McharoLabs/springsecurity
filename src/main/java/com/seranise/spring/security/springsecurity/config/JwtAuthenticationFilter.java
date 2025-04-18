@@ -1,7 +1,6 @@
 package com.seranise.spring.security.springsecurity.config;
 
 import com.seranise.spring.security.springsecurity.exception.ForbiddenAccessException;
-import com.seranise.spring.security.springsecurity.exception.InvalidTokenException;
 import com.seranise.spring.security.springsecurity.exception.UnauthorizedAccessException;
 import com.seranise.spring.security.springsecurity.service.impl.JWTServiceImpl;
 import com.seranise.spring.security.springsecurity.service.impl.UserServiceImpl;

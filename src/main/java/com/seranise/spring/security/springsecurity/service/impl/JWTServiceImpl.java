@@ -1,6 +1,5 @@
 package com.seranise.spring.security.springsecurity.service.impl;
 
-import com.seranise.spring.security.springsecurity.entity.User;
 import com.seranise.spring.security.springsecurity.exception.InvalidTokenException;
 import com.seranise.spring.security.springsecurity.service.JWTService;
 import io.jsonwebtoken.Claims;
